@@ -2,6 +2,9 @@ import { REST, Routes, Client, GatewayIntentBits, ApplicationCommandOptionType, 
 import 'dotenv/config'
 import { questions } from './wyr.mjs';
 import { answers } from './8ball.mjs';
+import express from 'express';
+
+const app = express()
 
 const client = new Client({
     intents: [
@@ -296,6 +299,13 @@ async function main() {
     } catch (err) {
       console.log(err);
     }
+
+    app.all('/', (req, res) => {
+        console.log("Just got a request!")
+        res.send("This is blueberry's awesome website")
+    })
+    app.listen(process.env.PORT || 3000)
+
   }
 
   main();
