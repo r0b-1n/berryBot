@@ -1,5 +1,7 @@
-import { REST, Routes, Client, GatewayIntentBits, ApplicationCommandOptionType } from 'discord.js';
-import { Configuration, OpenAIApi } from "openai";
+import { REST, Routes, Client, GatewayIntentBits, ApplicationCommandOptionType, EmbedBuilder } from 'discord.js';
+import 'dotenv/config'
+import { questions } from './wyr.mjs';
+import { answers } from './8ball.mjs';
 
 const client = new Client({
     intents: [
@@ -9,11 +11,6 @@ const client = new Client({
     ],
   });
 
-const openai = new OpenAIApi(new Configuration({
-    apiKey: KEY,
-  })
-);
-
 const commands = [
 	{
 		name: 'ping',
@@ -21,159 +18,53 @@ const commands = [
 	},
     {
         name: 'help',
-        description: 'A usefull command to learn more about berryBot.',
+        description: 'A usefull command to learn more about what blueberry can do.',
     },
     {
-        name: 'ban',
-        description: 'Ban the user from the server.',
-        options: [
-            {
-                name: 'user',
-                description: 'Who you want to ban?',
-                type: ApplicationCommandOptionType.User,
-                required: true,
-            }
-        ] 
-    },
-    {
-        name: 'unban',
-        description: 'Unban the user from the server.',
-        options: [
-            {
-                name: 'user',
-                description: 'Who you want to unban?',
-                type: ApplicationCommandOptionType.User,
-                required: true,
-            }
-        ] 
-    },
-    {
-        name: 'kick',
-        description: 'Kick the user from the server.',
-        options: [
-            {
-                name: 'user',
-                description: 'Who you want to kick?',
-                type: ApplicationCommandOptionType.User,
-                required: true,
-            }
-        ] 
-    },
-    {
-        name: 'softban',
-        description: 'Ban the user from the server, but only temporarily.',
-        options: [
-            {
-                name: 'user',
-                description: 'Who you want to ban?',
-                type: ApplicationCommandOptionType.User,
-                required: true,
-            },
-            {
-                name: 'time',
-                description: 'For how long you want to ban this user?',
-                type: ApplicationCommandOptionType.Integer,
-                required: true,
-            }
-        ] 
-    },
-    {
-        name: 'slowmode',
-        description: 'Sets the cooldown how often user can write in the channel.',
-        options: [
-            {
-                name: 'time',
-                description: 'How long should the cooldown be?',
-                type: ApplicationCommandOptionType.Integer,
-                required: true,
-            }
-        ] 
-    },
-    {
-        name: 'lock',
-        description: 'Locks the channel so no messages can be written there.',
-    },
-    {
-        name: 'unlock',
-        description: 'Unlocks the channel.',
-    },
-    {
-        name: 'mute',
-        description: 'Mutes the user temporarily.',
-        options: [
-            {
-                name: 'user',
-                description: 'Who you want to mute?',
-                type: ApplicationCommandOptionType.User,
-                required: true,
-            },
-            {
-                name: 'time',
-                description: 'For how long you want to mute this user?',
-                type: ApplicationCommandOptionType.Integer,
-                required: true,
-            }
-        ] 
-    },
-    {
-        name: 'unmute',
-        description: 'Unmute the user.',
-        options: [
-            {
-                name: 'user',
-                description: 'Who you want to unmute?',
-                type: ApplicationCommandOptionType.User,
-                required: true,
-            }
-        ] 
+        name: 'invite',
+        description: 'Invite blueberry to another server.',
     },
     {
         name: 'wyr',
-        description: 'A simple question with two choices.',
-    },
-    {
-        name: 'question',
-        description: 'Get a question.',
-    },
-    {
-        name: 'av',
-        description: 'Get the avatar of the user as an image.',
+        description: 'A simple question with two choices. What would you rather do?',
         options: [
             {
-                name: 'user',
-                description: 'From who you want to see the avatar?',
-                type: ApplicationCommandOptionType.User,
-                required: true,
+                name: 'id',
+                description: 'Force a specific id?',
+                type: ApplicationCommandOptionType.Integer,
+                required: false,
             },
         ] 
     },
     {
-        name: 'guildav',
-        description: 'Get the avatar of the server.',
+        name: 'question',
+        description: 'Get a question. Answer it.',
     },
     {
-        name: 'serverinfo',
-        description: 'Get some infos about the server.',
-    },
-    {
-        name: 'userinfo',
-        description: 'Get some infos about the user.',
-        options: [
-            {
-                name: 'user',
-                description: 'About which user you want to get some infos?',
-                type: ApplicationCommandOptionType.User,
-                required: true,
-            }
-        ] 
+        name: 'topic',
+        description: 'Get a topic. Talk about it. Some might be to deep for a discord user.',
     },
     {
         name: '8ball',
-        description: 'You have a question? Here is the answer.',
+        description: 'You have a question? I have the answer.',
+        options: [
+            {
+                name: 'question',
+                description: 'What question do you want to ask the 8ball?',
+                type: ApplicationCommandOptionType.String,
+                required: true,
+            },
+            {
+                name: 'id',
+                description: 'Force a specific answer?',
+                type: ApplicationCommandOptionType.Integer,
+                required: false,
+            },
+        ] 
     },
     {
         name: 'dice',
-        description: 'Roll a dice.',
+        description: 'Roll a dice. 1 to 6, you can get everything!',
     },
     {
         name: 'percent',
@@ -181,7 +72,7 @@ const commands = [
     },
     {
         name: 'coinflip',
-        description: 'Head or number.',
+        description: 'Flip the coin. Head or number.',
     },
     {
         name: 'dog',
@@ -196,52 +87,55 @@ const commands = [
         description: 'Get an image of an amazing cat.',
     },
     {
+        name: 'duck',
+        description: 'Get an image of a fantastic duck.',
+    },
+    {
+        name: 'meme',
+        description: 'Get a meme from reddit.',
+    },
+    {
+        name: 'dadjoke',
+        description: "Dad's jokes are the best!",
+    },
+    {
         name: 'slot',
-        description: 'Gambling can make you addicted.',
+        description: 'Gambling can make you addicted. Fr.',
+    },
+    {
+        name: 'truth',
+        description: 'Tell me the truth.',
+    },
+    {
+        name: 'dare',
+        description: 'I dare you to....',
+    },
+    {
+        name: 'tod',
+        description: 'Random Truth or Dare',
+    },
+    {
+        name: 'nhie',
+        description: 'Never have I ever.',
     },
     /*{
-        name: 'poll',
-        description: 'Create a poll.',
-    },
-    {
-        name: 'play',
-        description: 'Play some music.',
-    },    
-    {
-        name: 'qotd',
-        description: 'Askes a question, every day.',
-    },
-    {
-        name: 'ticket',
-        description: 'Run the ticket system setup.',
-    },
-    {
-        name: 'selector',
-        description: 'Create a selector for a role menu.',
-    },
-    {
         name: 'rps',
-        description: 'Its against a bot... You might not be able to win.',
-    },*/
-    {
-        name: 'ask',
-        description: 'Ask berry anything, because berry knows everything.',
+        description: "Rock. Paper. Scissors. Some people say you can't win.",
         options: [
             {
-                name: 'question',
-                description: 'What you want to ask berrybot?',
+                name: 'rock_paper_or_scissors?',
+                description: 'What do you want to take?',
                 type: ApplicationCommandOptionType.String,
                 required: true,
             }
         ] 
-    },
+    },*/
 ];
 
-const rest = new REST({ version: '10' }).setToken(TOKEN);
+const rest = new REST({ version: '10' }).setToken(process.env.TOKEN);
 
 client.on('ready', () => {
 	console.log(`Logged in as ${client.user.tag}!`);
-    client.user.setActivity('Try berryGPT with /ask')
 });
 
 client.on('interactionCreate', async (interaction) => {
@@ -255,43 +149,28 @@ client.on('interactionCreate', async (interaction) => {
 		case 'help':
 			await interaction.reply('A usefull command to learn more about berryBot.');
 			break;
-		case 'ban':
-            const user = interaction.options.get('user').value;
-            await user.ban()
-			await interaction.reply('Ban the user from the server.');
-			break;
-		case 'unban':
-			await interaction.reply('Unban the user from the server.');
-			break;
-		case 'kick':
-			await interaction.reply('Kick the user from the server.');
-			break;
-		case 'softban':
-			await interaction.reply('Ban the user from the server, but only temporarily.');
-			break;
-		case 'slowmode':
-			await interaction.reply('Sets the cooldown how often user can write in the channel.');
-			break;
-		case 'lock':
-			await interaction.reply('Locks the channel so no messages can be written there.');
-			break;
-		case 'unlock':
-			await interaction.reply('Unlocks the channel.');
-			break;
-		case 'mute':
-			await interaction.reply('Mutes the user temporarily.');
-			break;
-		case 'unmute':
-			await interaction.reply('Unmute the user.');
-			break;
 		case 'wyr':
-			await interaction.reply('A simple question with two choices.');
+
+            let randomNumber = Math.floor(Math.random() * questions.length);
+            let randomQuestion = questions[randomNumber];
+            
+            const wyrEmbed = new EmbedBuilder()
+            .setColor(0x0099FF)
+            .setTitle('Here is a **Would You Rather** question for you:')
+            .addFields(
+                { name: ' ', value: randomQuestion },
+            )
+            .setFooter({ text: "This is question " + randomNumber + " of " + questions.length, iconURL: client.user.displayAvatarURL() });
+
+            await interaction.reply({ embeds: [wyrEmbed] });
+
 			break;
-		case 'question':
-			await interaction.reply('Get a question Question.');
+		case 'topic':
+			await interaction.reply('Get a random topic to talk about.');
 			break;
 		case 'av':
-			await interaction.reply('Get the avatar of the user as an image.');
+            const user = interaction.options.get('user').value;
+            await interaction.reply(user);
 			break;
 		case 'guildav':
 			await interaction.reply('Get the avatar of the server.');
@@ -303,113 +182,26 @@ client.on('interactionCreate', async (interaction) => {
 			await interaction.reply('Get some infos about the user.');
 			break;
 		case '8ball':
-            let answers = [
-                "It is certain.",
-                "It is decidedly so.",
-                "Without a doubt.",
-                "Yes – definitely.",
-                "You may rely on it.",
-                "As I see it, yes.",
-                "Most likely.",
-                "Outlook good.",
-                "Yes.",
-                "Signs point to yes.",
-                "Reply hazy, try again.",
-                "Ask again later.",
-                "Better not tell you now.",
-                "Cannot predict now.",
-                "Concentrate and ask again.",
-                "Don't count on it.",
-                "Outlook not so good.",
-                "My sources say no.",
-                "Very doubtful.",
-                "My reply is no.",
-                "Outlook is bleak.",
-                "Chances aren’t good.",
-                "Very unlikely.",
-                "Odds are not in your favor.",
-                "Not looking good.",
-                "It’s not likely.",
-                "I’m afraid not.",
-                "I don't think so.",
-                "Not a chance.",
-                "No way.",
-                "Sorry, no.",
-                "Unfortunately no.",
-                "Nope.",
-                "Definitely not.",
-                "It is unlikely.",
-                "It is impossible.",
-                "The outlook is murky.",
-                "Cannot say now.",
-                "The signs are unclear.",
-                "Ask again later.",
-                "It’s hard to say.",
-                "The answer is within you.",
-                "It's not my place to say.",
-                "Perhaps you already know the answer.",
-                "I have faith in you to make the right choice.",
-                "It’s up to you to decide.",
-                "You will know when the time is right.",
-                "The future is unwritten.",
-                "Time will tell.",
-                "You have the power to change the outcome.",
-                "Trust your instincts.",
-                "Listen to your heart.",
-                "Take a leap of faith.",
-                "The universe has a plan.",
-                "Don't give up.",
-                "Keep trying.",
-                "You can do it.",
-                "Believe in yourself.",
-                "You have what it takes.",
-                "Stay positive.",
-                "Stay focused on your goals.",
-                "Stay true to yourself.",
-                "Have faith in the journey.",
-                "Be patient.",
-                "Everything happens for a reason.",
-                "Good things come to those who wait.",
-                "The best is yet to come.",
-                "This too shall pass.",
-                "Change is on the horizon.",
-                "A new door will open soon.",
-                "Opportunities are coming.",
-                "The tide is turning.",
-                "The winds of change are blowing.",
-                "You are stronger than you know.",
-                "You are capable of amazing things.",
-                "You are loved.",
-                "You are not alone.",
-                "Someone cares about you deeply.",
-                "Everything will be okay.",
-                "You are on the right path.",
-                "You are exactly where you need to be.",
-                "Trust the journey.",
-                "You are making progress.",
-                "You are doing your best.",
-                "You are enough.",
-                "Believe in yourself and all that you are.",
-                "Your potential is limitless.",
-                "You are a force to be reckoned with.",
-                "You are destined for greatness.",
-                "Dream big and go for it.",
-                "Success is within reach.",
-                "The world is your oyster.",
-                "Anything is possible.",
-                "You can achieve anything you set your mind to.",
-                "Keep reaching for the stars.",
-                "Never give up on your dreams.",
-                "Stay true to your passions.",
-                "Your hard work will pay off."
-            ]
+
             let randomChoice = Math.floor(Math.random() * answers.length);
             let randomAnswer = answers[randomChoice];
-			await interaction.reply(':8ball: ' + randomAnswer);			
+            const question = interaction.options.get('question').value;
+
+            const ballEmbed = new EmbedBuilder()
+            .setColor(0x0099FF)
+            .setTitle('You asked the magic 8ball:')
+            .setDescription(question)
+            .addFields(
+                { name: ' ', value: "`🎱: "+randomAnswer+"`" },
+            )
+            .setFooter({ text: "This is 8ball's answer " + randomChoice + " out of " + answers.length, iconURL: client.user.displayAvatarURL() });
+
+            await interaction.reply({ embeds: [ballEmbed] });
+
             break;
 		case 'dice':
-            let randomNumber = Math.floor(Math.random() * 6) + 1;
-			await interaction.reply('🎲 I got a ' + randomNumber + '.');
+            let randomDice = Math.floor(Math.random() * 6) + 1;
+			await interaction.reply('🎲 I got a ' + randomDice + '.');
 			break;
 		case 'percent':
             let randomPercentage = Math.floor(Math.random() * 100);
@@ -422,36 +214,73 @@ client.on('interactionCreate', async (interaction) => {
 			await interaction.reply(':coin: I flipped and got ' + randomString + '.');
 			break;
 		case 'dog':
-			await interaction.reply('Get an image of a cute dog.');
-			break;
+            const dog = await fetch("https://dog.ceo/api/breeds/image/random")
+            const jsonDog = await dog.json();
+
+            const dogEmbed = new EmbedBuilder()
+            .setColor(0x0099FF)
+            .setTitle("🐶 It's a dog!")
+            .setImage(jsonDog.message)
+            .setFooter({ text: "Image provided by https://dog.ceo ♥", iconURL: client.user.displayAvatarURL() });
+
+            await interaction.reply({ embeds: [dogEmbed] });
+
+            break;
 		case 'fox':
-			await interaction.reply('Get an image of a cool fox.');
-			break;
+            const fox = await fetch("https://randomfox.ca/floof/")
+            const jsonFox = await fox.json();
+
+            const foxEmbed = new EmbedBuilder()
+            .setColor(0x0099FF)
+            .setTitle("🦊 It's a fox!")
+            .setImage(jsonFox.image)
+            .setFooter({ text: "Image provided by https://randomfox.ca ♥", iconURL: client.user.displayAvatarURL() });
+
+            await interaction.reply({ embeds: [foxEmbed] });
+
+            break;
 		case 'cat':
-			await interaction.reply('Get an image of an amazing cat.');
-			break;
+            const cat = await fetch("https://api.thecatapi.com/v1/images/search?format=json&x-api-key="+process.env.CAT_KEY)
+            const jsonCat = await cat.json();
+
+            const catEmbed = new EmbedBuilder()
+            .setColor(0x0099FF)
+            .setTitle("🐈 It's a cat!")
+            .setImage(jsonCat[0].url)
+            .setFooter({ text: "Image provided by https://thecatapi.com ♥", iconURL: client.user.displayAvatarURL() });
+
+            await interaction.reply({ embeds: [catEmbed] });
+
+            break;
+        case 'meme':
+            const meme = await fetch("https://meme-api.com/gimme")
+            const jsonMeme = await meme.json()
+            console.log(jsonMeme)
+
+            const memeEmbed = new EmbedBuilder()
+            .setColor(0x0099FF)
+            .setTitle("Meme made by " + jsonMeme.author + " on " + jsonMeme.subreddit + " subreddit!")
+            .setImage(jsonMeme.url)
+            .setFooter({ text: "Meme provided by https://meme-api.com ♥", iconURL: client.user.displayAvatarURL() });
+
+            await interaction.reply({ embeds: [memeEmbed] });
+
+            break;
 		case 'slot':
 			await interaction.reply('Gambling can make you addicted.');
 			break;
-        case 'ask':
-        await interaction.deferReply();
-        const question = interaction.options.get('question').value;
-            try {
-                const response = await openai.createChatCompletion({
-                    model: "gpt-3.5-turbo",
-                    messages: [
-                        {role: "system", content: "You are a helpful assistant who responds succinctly"},
-                        {role: "user", content: question}
-                    ],
-                  });
-            
-                const content = response.data.choices[0].message;
-                return await interaction.editReply(content);
-            } catch (err) {
-                return interaction.editReply(
-                  "As an AI robot, I errored out."
-                );
+        /*case 'rock_paper_scissors':
+            const input = interaction.options.get('rock_paper_or_scissors').value.toLocaleLowerCase();
+            if (input != "rock" || "paper" || "scissors") {
+                await interaction.reply('Bruh. ' + input);
+            } else if (input = "rock") {
+                await interaction.reply('You lost! I have paper. 😂');
+            } else if (input = "paper") {
+                await interaction.reply('You lost! I have scissors. 😂');
+            } else if (input = "scissors") {
+                await interaction.reply('You lost! I have rock. 😂');
             }
+            break;*/
 		default:
 			await interaction.reply('Unknown command!');
 			break;
@@ -461,9 +290,9 @@ client.on('interactionCreate', async (interaction) => {
 async function main() {
     try {
       console.log('Started refreshing application (/) commands.');
-      await rest.put(Routes.applicationCommands(CLIENT_ID), { body: commands });
+      await rest.put(Routes.applicationCommands(process.env.CLIENT_ID), { body: commands });
       console.log('Successfully reloaded application (/) commands.');
-      client.login(TOKEN);
+      client.login(process.env.TOKEN);
     } catch (err) {
       console.log(err);
     }
